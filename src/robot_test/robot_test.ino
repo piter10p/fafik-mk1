@@ -57,14 +57,14 @@ void setup()
   pinMode(MSP_1, OUTPUT);
   pinMode(MSP_2, OUTPUT);
 
-  diodeThread.setInterval(1000);
+  diodeThread.setInterval(10);
   diodeThread.onRun(diodeCallback);
 
   distanceMeterThread.setInterval(10);
   distanceMeterThread.onRun(distanceMeterCallback);
 
   speakerThread.setInterval(1000);
-  speakerThread.onRun(speakerCallback);
+  //speakerThread.onRun(speakerCallback);
 
   displayThread.setInterval(1000);
   displayThread.onRun(displayCallback);
@@ -88,7 +88,7 @@ void loop()
 
 void diodeCallback()
 {
-  diodeState = !diodeState;
+  //diodeState = !diodeState;
 
   if(diodeState)
     digitalWrite(STATUS_LED, HIGH);
@@ -105,18 +105,18 @@ void distanceMeterCallback()
   long result = pulseIn(ECHO, HIGH);
   result = result / 58;
 
-  //if(result <= 10)
-    //diodeState = true;
-  //else
-    //diodeState = false;
+  if(result <= 10)
+    diodeState = true;
+  else
+    diodeState = false;
 }
 
 void speakerCallback()
 {
-  //if(speakerState)
-    //tone(SPEAKER, 1000);
-  //else
-    //tone(SPEAKER, 500);
+  if(speakerState)
+    tone(SPEAKER, 1000);
+  else
+    tone(SPEAKER, 500);
 
   speakerState = !speakerState;
 }
