@@ -24,6 +24,7 @@
 #define MSP_2 5
 
 Thread diodeThread = Thread();
+Thread diodeChangeStateThread = Thread();
 Thread distanceMeterThread = Thread();
 Thread speakerThread = Thread();
 Thread displayThread = Thread();
@@ -34,13 +35,13 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire);
 
 Servo servo;
 
-StaticThreadController<6> controller (&diodeThread, &distanceMeterThread,
+StaticThreadController<7> controller (&diodeThread, &diodeChangeStateThread, &distanceMeterThread,
   &speakerThread, &displayThread, &servoThread, &motorThread);
 
 bool diodeState = false;
+bool forcedDiodeState = false;
 bool displayState = false;
-bool speakerState = false;
-int servoPos = 0;
+int servoState = 0;
 int motorState = 0;
 
 void setup()
@@ -59,17 +60,20 @@ void setup()
 
   diodeThread.setInterval(10);
   diodeThread.onRun(diodeCallback);
+  
+  diodeChangeStateThread.setInterval(1000);
+  diodeChangeStateThread.onRun(diodeChangeStateCallback);
 
   distanceMeterThread.setInterval(10);
   distanceMeterThread.onRun(distanceMeterCallback);
 
-  speakerThread.setInterval(1000);
-  //speakerThread.onRun(speakerCallback);
+  speakerThread.setInterval(5000);
+  speakerThread.onRun(speakerCallback);
 
   displayThread.setInterval(1000);
   displayThread.onRun(displayCallback);
 
-  servoThread.setInterval(200);
+  servoThread.setInterval(2000);
   servoThread.onRun(servoCallback);
 
   motorThread.setInterval(1000);
@@ -88,12 +92,15 @@ void loop()
 
 void diodeCallback()
 {
-  //diodeState = !diodeState;
-
-  if(diodeState)
+  if(diodeState || forcedDiodeState)
     digitalWrite(STATUS_LED, HIGH);
   else
     digitalWrite(STATUS_LED, LOW);
+}
+
+void diodeChangeStateCallback()
+{
+  diodeState = !diodeState;
 }
 
 void distanceMeterCallback()
@@ -106,19 +113,14 @@ void distanceMeterCallback()
   result = result / 58;
 
   if(result <= 10)
-    diodeState = true;
+    forcedDiodeState = true;
   else
-    diodeState = false;
+    forcedDiodeState = false;
 }
 
 void speakerCallback()
 {
-  if(speakerState)
-    tone(SPEAKER, 1000);
-  else
-    tone(SPEAKER, 500);
-
-  speakerState = !speakerState;
+  tone(SPEAKER, 1000, 10);
 }
 
 void displayCallback()
@@ -144,12 +146,25 @@ void displayCallback()
 
 void servoCallback()
 {
-  if (servoPos < 180)
-    servo.write(servoPos);
-  else
-    servoPos = 0;   
-  
-  servoPos += 10;
+  switch(servoState)
+  {
+    case 0:
+      servo.write(0);
+      break;
+
+    case 1:
+      servo.write(90);
+      break;
+
+    case 2:
+      servo.write(180);
+      break;
+  }
+
+  servoState++;
+
+  if(servoState == 3)
+    servoState = 0;
 }
 
 void motorCallback()
